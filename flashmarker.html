@@ -1,0 +1,127 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>在线天地图-4326</title>
+	<link rel="stylesheet" type="text/css" href="plugin/ol4/ol.css"/>
+	<style type="text/css">
+		body, #map {
+			border: 0px;
+			margin: 0px;
+			padding: 0px;
+			width: 100%;
+			height: 100%;
+			font-size: 13px;
+		}
+	</style>
+	<script type="text/javascript" src="plugin/ol4/ol.js"></script>
+	<script type="text/javascript" src="js/jquery-1.4.4.min.js"></script>
+	<script type="text/javascript" src="js/flash-marker.js"></script>
+	<script>
+		var map;
+		function init(){
+			var projection = new ol.proj.Projection({
+				code: 'EPSG:4326',
+				units: 'degrees'
+			});
+            var img_c = getTdtLayer("vec_c");
+            var cva_c = getTdtLayer("cva_c");
+			map = new ol.Map({
+				controls: ol.control.defaults({
+					attribution: false
+				}),
+				target: 'map',
+				layers: [img_c, cva_c],
+				view: new ol.View({
+					projection: projection,
+					center:[113.275995, 23.117055],
+					zoom:4,
+					minZoom:0,
+					maxZoom:18
+				})
+			});
+            $("#wind").on("click", function(){
+                var citys = [
+                    {
+                    name: '北京',
+                    lnglat: ['116.3', '39.9'],
+                    color: '#5070FF',
+                    type: 'circle',
+                    speed: 0.2,
+                }, {
+                    name: '上海',
+                    lnglat: ['121.29', '31.11'],
+                    color: '#6EE7FF',
+                    type: 'ellipse',
+                    speed: 1,
+                    max: 40,
+                }, {
+                    name: '福建',
+                    lnglat: ['117.984943', '26.050118'],
+                    color: '#90EE90',
+                    type: 'circle',
+                    speed: 0.45,
+                }, {
+                    name: '广东',
+                    lnglat: ['113.394818', '23.408004'],
+                    color: '#f8983a',
+                    type: 'circle',
+                    speed: 0.9,
+                }, {
+                    name: '广西',
+                    lnglat: ['108.924274', '23.552255'],
+                    color: '#FAFA32',
+                    type: 'ellipse',
+                    speed: 0.8,
+                    max: 50,
+                }
+                ];
+                new FlashMarker(map, citys);
+			});
+		}
+
+		function getTdtLayer(lyr){
+			var url = "http://t0.tianditu.com/DataServer?T="+lyr+"&X={x}&Y={y}&L={z}";
+			var projection = ol.proj.get("EPSG:4326");
+			var projectionExtent = [ -180, -90, 180, 90 ];
+			var maxResolution = (ol.extent.getWidth(projectionExtent) / (256 * 2));
+			var resolutions = new Array(16);
+			var z;
+			for (z = 0; z < 16; ++z) {
+				resolutions[z] = maxResolution / Math.pow(2, z);
+			}
+			var tileOrigin = ol.extent.getTopLeft(projectionExtent);
+			var layer = new ol.layer.Tile({
+				extent: [ -180, -90, 180, 90 ],
+				source: new ol.source.TileImage({
+                    crossOrigin: 'anonymous',
+					tileUrlFunction: function(tileCoord) {
+						var z = tileCoord[0]+1;
+						var x = tileCoord[1];
+						var y = -tileCoord[2]-1;
+						var n = Math.pow(2, z + 1);
+						x = x % n;
+						if (x * n < 0) {
+							x = x + n;
+						}
+						return url.replace('{z}', z.toString())
+								.replace('{y}', y.toString())
+								.replace('{x}', x.toString());
+					},
+					projection: projection,
+					tileGrid: new ol.tilegrid.TileGrid({
+						origin: tileOrigin,
+						resolutions: resolutions,
+						tileSize: 256
+					})
+				})
+			});
+			return layer;
+		}
+	</script>
+</head>
+<body onLoad="init()">
+<button id="wind" style="position:absolute;top: 10px;right: 10px;z-index: 99;">add Wind</button>
+<div id="map">
+</div>
+</body>
+</html>
